@@ -30,6 +30,40 @@ The following are the recommended rules for instance security groups\.
 | VPC CIDR | target | target | Allow client traffic \(ip target type\) | 
 | VPC CIDR | health check | health check | Allow health check traffic from the load balancer | 
 
+
+*Example*
+
+In this situation we open access to an EC2 instance with a web server behind a network load balancer to entire Internet IPv4 space.
+It is a production web server in this case, mind hardening it before giving access broad access to the Internet.
+Given a VPC address space is given by `10.0.0.0/16`, the security group configuration might look like this.
+We perform the health check of the instance on the same TCP port 80.
+
+
+| 
+| 
+| Inbound | 
+| --- |
+|  Source  |  Protocol  |  Port Range  |  Comment  | 
+| 0.0.0.0/0 | TCP | 80 | Allow HTTP traffic from entier Internet IPv4 space | 
+| 10.0.0.0/16 | TCP | 80 | Allow client traffic within the VPC | 
+| 10.0.0.0/16 | TCP | 80 | Allow health check traffic from the load balancer (same port used) | 
+
+The network load balancer is transparent to the target server. The IP of the requesting client is going to appear
+requesting the target server itself. That is why the security group must allow all addresses in this case (we do not 
+know the client's IP in advance).
+
+The access logs of an Apache 2 server might look like following in this example case:
+```
+...
+62.216.206.176 - - [01/Dec/2020:17:55:33 +0000] "GET / HTTP/1.1" 304 - "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:78.0) Gecko/20100101 Firefox/78.0"
+62.216.206.176 - - [01/Dec/2020:17:59:10 +0000] "GET / HTTP/1.1" 304 - "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:78.0) Gecko/20100101 Firefox/78.0"
+...
+```
+Where 62.216.206.176 is a real IP of a visitor's client.
+
+
+
+
 If you register targets by IP address and do not want to grant access to the entire VPC CIDR, you can grant access to the private IP addresses used by the load balancer nodes\. There is one IP address per load balancer subnet\. To find these addresses, use the following procedure\.
 
 **To find the private IP addresses to allow**
